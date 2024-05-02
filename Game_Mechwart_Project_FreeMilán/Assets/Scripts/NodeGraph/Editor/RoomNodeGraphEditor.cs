@@ -6,6 +6,7 @@ public class RoomNodeGrpahEditor : EditorWindow
 {
     private GUIStyle roomNodeStyle;
     private static RoomNodeGraphSO currentRoomNodeGraph;
+    private RoomNodeSO currentRoomNode = null;
     private RoomNodeTypeListSO roomNodeTypeList;
 
     private const float nodeWidth = 160f;
@@ -49,7 +50,6 @@ public class RoomNodeGrpahEditor : EditorWindow
         if (currentRoomNodeGraph != null)
         {
             ProcessEvents(Event.current);
-
             DrawRoomNodes();
         }
         if (GUI.changed)
@@ -57,7 +57,31 @@ public class RoomNodeGrpahEditor : EditorWindow
     }
     private void ProcessEvents(Event currentEvent)
     {
-        ProcessRoomNodeGraphEvents(currentEvent);
+        if (currentRoomNode == null || currentRoomNode.isLeftClickDragging == false)
+        {
+            currentRoomNode = IsMouseOverRoomNode(currentEvent);
+        }
+        if (currentRoomNode == null)
+        {
+            ProcessRoomNodeGraphEvents(currentEvent);
+        }
+        else
+        {
+            currentRoomNode.ProcessEvents(currentEvent);
+        }
+        
+        
+    }
+    private RoomNodeSO IsMouseOverRoomNode(Event currentEvent)
+    {
+        for (int i = currentRoomNodeGraph.roomNodeList.Count -1; i >= 0; i--)
+        {
+            if (currentRoomNodeGraph.roomNodeList[i].rect.Contains(currentEvent.mousePosition))
+            {
+                return currentRoomNodeGraph.roomNodeList[i];
+            }
+        }
+        return null;
     }
     private void ProcessRoomNodeGraphEvents(Event currentEvent)
     {
@@ -84,7 +108,7 @@ public class RoomNodeGrpahEditor : EditorWindow
     private void ShowContextMenu(Vector2 mousePosition)
     {
         GenericMenu menu = new GenericMenu();
-        menu.AddItem(new GUIContent("Csinálj Room Nodet"), false, CreateRoomNode, mousePosition);
+        menu.AddItem(new GUIContent("Create Room Node"), false, CreateRoomNode, mousePosition);
         menu.ShowAsContext();
     }
     private void CreateRoomNode(object mousePositionObject)
@@ -96,6 +120,7 @@ public class RoomNodeGrpahEditor : EditorWindow
         Vector2 mousePosition = (Vector2)mousePositionObject;
 
         RoomNodeSO roomNode = ScriptableObject.CreateInstance<RoomNodeSO>();
+        currentRoomNodeGraph.roomNodeList.Add(roomNode);
 
         roomNode.Initialise(new Rect(mousePosition, new Vector2(nodeWidth, nodeHeight)), currentRoomNodeGraph, roomNodeType);
 
@@ -103,4 +128,12 @@ public class RoomNodeGrpahEditor : EditorWindow
 
         AssetDatabase.SaveAssets();
     }
+    private void DrawRoomNodes()
+    {
+        foreach(RoomNodeSO roomNode in currentRoomNodeGraph.roomNodeList)
+        {
+            roomNode.Draw(roomNodeStyle);
+        }
+        GUI.changed = true;
+    } 
 }
