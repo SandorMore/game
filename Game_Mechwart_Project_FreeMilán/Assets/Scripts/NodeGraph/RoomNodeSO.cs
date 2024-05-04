@@ -202,10 +202,28 @@ public class RoomNodeSO : ScriptableObject
         return true;
     }
     
-        public bool AddParentRoomNodeIDToRoomNode(string parentID)
+    public bool AddParentRoomNodeIDToRoomNode(string parentID)
     {
         parentRoomNodeIdList.Add(parentID);
         return true;
+    }
+    public bool RemoveChildRoomNodeIDFromRoomNode(string childID)
+    {
+        if (childRoomNodeIdList.Contains(childID))
+        {
+            childRoomNodeIdList.Remove(childID);
+            return true;
+        }
+        return false;
+    }
+    public bool RemoveChilParentNodeIDFromRoomNode(string parentID)
+    {
+        if (parentRoomNodeIdList.Contains(parentID))
+        {
+            parentRoomNodeIdList.Remove(parentID);
+            return true;
+        }
+        return false;
     }
 #endif
     #endregion Editor

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor.Callbacks;
 using UnityEditor;
@@ -147,6 +148,11 @@ public class RoomNodeGrpahEditor : EditorWindow
     {
         GenericMenu menu = new GenericMenu();
         menu.AddItem(new GUIContent("Create Room Node"), false, CreateRoomNode, mousePosition);
+        menu.AddSeparator("");
+        menu.AddItem(new GUIContent("Select All Nodes"), false, SelectAllRoomNodes);
+        menu.AddSeparator("");
+        menu.AddItem(new GUIContent("Delete Selected Room Node Links"), false, DeleteSelectedRoomNodeLinks);
+        menu.AddItem(new GUIContent("Delete Selected Room Nodes"), false, DeleteSelectedRoomNodes);
         menu.ShowAsContext();
     }
     private void CreateRoomNode(object mousePositionObject)
@@ -173,6 +179,62 @@ public class RoomNodeGrpahEditor : EditorWindow
 
         currentRoomNodeGraph.OnValidate();
     }
+    private void DeleteSelectedRoomNodes()
+    {
+        Queue<RoomNodeSO> roomNodeDeletioQueue = new Queue<RoomNodeSO>();
+
+        foreach(RoomNodeSO roomNode in currentRoomNodeGraph.roomNodeList)
+        {
+            if (roomNode.isSelected && !roomNode.roomNodeType.isEntrance)
+            {
+                roomNodeDeletioQueue.Enqueue(roomNode);
+
+                foreach (string childRoomNodeID in roomNode.childRoomNodeIdList)
+                {
+                    RoomNodeSO childRoomNode = currentRoomNodeGraph.GetRoomNode(childRoomNodeID);
+
+                    if (childRoomNode != null)
+                    {
+                        childRoomNode.RemoveChilParentNodeIDFromRoomNode(roomNode.id);
+
+
+
+
+
+
+                    }
+                }   
+                foreach (string parentRoomNodeID in roomNode.parentRoomNodeIdList)
+                {
+                    RoomNodeSO parentRoomNode = currentRoomNodeGraph.GetRoomNode(parentRoomNodeID);
+                }
+
+            }
+        }
+    }
+    private void DeleteSelectedRoomNodeLinks()
+    {
+        foreach(RoomNodeSO roomNode in currentRoomNodeGraph.roomNodeList)
+        {
+            if (roomNode.isSelected && roomNode.childRoomNodeIdList.Count > 0)
+            {
+                for (int i = roomNode.childRoomNodeIdList.Count - 1; i >= 0; i--)
+                {
+                    RoomNodeSO childRoomNode = currentRoomNodeGraph.GetRoomNode(roomNode.childRoomNodeIdList[i]);
+
+                    if (childRoomNode != null && childRoomNode.isSelected)
+                    {
+                        roomNode.RemoveChildRoomNodeIDFromRoomNode(childRoomNode.id);
+
+                        childRoomNode.RemoveChilParentNodeIDFromRoomNode(roomNode.id);
+
+
+                    }
+                }
+            }
+        }
+    }
+
     private void ClearAllSelectedRoomNodes()
     {
         foreach (RoomNodeSO roomNode in currentRoomNodeGraph.roomNodeList)
@@ -184,6 +246,14 @@ public class RoomNodeGrpahEditor : EditorWindow
                 GUI.changed = true;
             }
         }
+    }
+    private void SelectAllRoomNodes()
+    {
+        foreach (RoomNodeSO roomNode in currentRoomNodeGraph.roomNodeList)
+        {
+            roomNode.isSelected = true;
+        }
+        GUI.changed = true;
     }
 
     private void ProcessMouseUpEvent(Event currentEvent)
