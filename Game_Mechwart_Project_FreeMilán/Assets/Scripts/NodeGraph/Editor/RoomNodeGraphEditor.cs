@@ -8,6 +8,10 @@ public class RoomNodeGrpahEditor : EditorWindow
     private GUIStyle roomNodeStyle;
     private GUIStyle roomNodeSelectedStyle;
     private static RoomNodeGraphSO currentRoomNodeGraph;
+
+    private Vector2 graphOffset;
+    private Vector2 graphDrag;
+
     private RoomNodeSO currentRoomNode = null;
     private RoomNodeTypeListSO roomNodeTypeList;
 
@@ -18,6 +22,11 @@ public class RoomNodeGrpahEditor : EditorWindow
 
     private const float connectingLineWidth = 3f;
     private const float connectingLineArrowSize = 9f;
+
+    private const float gridLarge = 100f;
+    private const float gridSmall = 25f;
+
+
     [MenuItem("Room Node Graph Editor", menuItem = "Window/Dungeon Editor/ Roomn Node Graph Editor")]
 
     public static void OpenWindow()
@@ -65,14 +74,41 @@ public class RoomNodeGrpahEditor : EditorWindow
     {
         if (currentRoomNodeGraph != null)
         {
+            DrawBackgroundGrid(gridSmall, 0.2f, Color.gray);
+            DrawBackgroundGrid(gridLarge, 0.2f, Color.gray);
             DrawDraggedLine();
+
             ProcessEvents(Event.current);
+
             DrawRoomConnections();
+
             DrawRoomNodes();
 
         }
         if (GUI.changed)
             Repaint();
+    }
+    private void DrawBackgroundGrid(float gridSize, float gridOpacity, Color gridColor)
+    {
+        int verticalLineCount = Mathf.CeilToInt((position.width + gridSize) / gridSize);
+        int horizontalLineCount = Mathf.CeilToInt((position.width + gridSize) / gridSize);
+
+        Handles.color = new Color(gridColor.r, gridColor.g, gridColor.b, gridOpacity);
+
+        graphOffset += graphDrag * 0.5f;
+
+        Vector3 gridOffset = new Vector3(graphOffset.x % gridSize, graphOffset.y % gridSize, 0);
+
+        for  (int i = 0; i < verticalLineCount; i++)
+        {
+            Handles.DrawLine(new Vector3(gridSize * i, -gridSize, 0) + gridOffset, new Vector3(gridSize * i, position.height + gridSize, 0f) + gridOffset);
+        }
+         for  (int j = 0; j < verticalLineCount; j++)
+        {
+            Handles.DrawLine(new Vector3(-gridSize, gridSize * j, 0) + gridOffset, new Vector3(position.width + gridSize, gridSize * j, 0f) + gridOffset);
+        }
+        Handles.color = Color.white;
+        
     }
     private void DrawDraggedLine()
     {
@@ -85,6 +121,9 @@ public class RoomNodeGrpahEditor : EditorWindow
     }
     private void ProcessEvents(Event currentEvent)
     {
+        graphDrag = Vector2.zero;
+
+
         if (currentRoomNode == null || currentRoomNode.isLeftClickDragging == false)
         {
             currentRoomNode = IsMouseOverRoomNode(currentEvent);
@@ -100,6 +139,7 @@ public class RoomNodeGrpahEditor : EditorWindow
 
 
     }
+
     private RoomNodeSO IsMouseOverRoomNode(Event currentEvent)
     {
         for (int i = currentRoomNodeGraph.roomNodeList.Count - 1; i >= 0; i--)
@@ -123,6 +163,8 @@ public class RoomNodeGrpahEditor : EditorWindow
                 break;
             case EventType.MouseDrag:
                 ProcessMouseDragEvent(currentEvent);
+
+
                 break;
 
 
@@ -195,21 +237,33 @@ public class RoomNodeGrpahEditor : EditorWindow
 
                     if (childRoomNode != null)
                     {
-                        childRoomNode.RemoveChilParentNodeIDFromRoomNode(roomNode.id);
-
-
-
-
-
-
+                        childRoomNode.RemoveParentRoomNodeIDFromRoomNode(roomNode.id);
                     }
                 }   
                 foreach (string parentRoomNodeID in roomNode.parentRoomNodeIdList)
                 {
                     RoomNodeSO parentRoomNode = currentRoomNodeGraph.GetRoomNode(parentRoomNodeID);
+
+
+                    if (parentRoomNode != null)
+                    {
+                        parentRoomNode.RemoveChildRoomNodeIDFromRoomNode(roomNode.id);
+                    }
                 }
 
             }
+        }
+        while (roomNodeDeletioQueue.Count > 0)
+        {
+            RoomNodeSO roomNodeToDelete = roomNodeDeletioQueue.Dequeue();
+
+            currentRoomNodeGraph.RoomNodeDictionary.Remove(roomNodeToDelete.id);
+
+            currentRoomNodeGraph.roomNodeList.Remove(roomNodeToDelete);
+
+            DestroyImmediate(roomNodeToDelete, true);
+
+            AssetDatabase.SaveAssets();
         }
     }
     private void DeleteSelectedRoomNodeLinks()
@@ -226,7 +280,7 @@ public class RoomNodeGrpahEditor : EditorWindow
                     {
                         roomNode.RemoveChildRoomNodeIDFromRoomNode(childRoomNode.id);
 
-                        childRoomNode.RemoveChilParentNodeIDFromRoomNode(roomNode.id);
+                        childRoomNode.RemoveParentRoomNodeIDFromRoomNode(roomNode.id);
 
 
                     }
@@ -280,6 +334,10 @@ public class RoomNodeGrpahEditor : EditorWindow
         {
             ProcessRightMouseDragEvent(currentEvent);
         }
+        else if (currentEvent.button == 0)
+        {
+            ProcessLeftMouseDragEvent(currentEvent.delta);
+        }
     }
     private void ProcessRightMouseDragEvent(Event currentEvent)
     {
@@ -290,6 +348,17 @@ public class RoomNodeGrpahEditor : EditorWindow
             GUI.changed = true;
         }
 
+    }
+    private void ProcessLeftMouseDragEvent(Vector2 dragDelta)
+    {
+        graphDrag = dragDelta;
+
+        for (int i = 0; i < currentRoomNodeGraph.roomNodeList.Count; i++)
+        {
+            currentRoomNodeGraph.roomNodeList[i].DragNode(dragDelta);
+        }
+
+        GUI.changed = true;
     }
     public void DragConnectingLine(Vector2 delta)
     {

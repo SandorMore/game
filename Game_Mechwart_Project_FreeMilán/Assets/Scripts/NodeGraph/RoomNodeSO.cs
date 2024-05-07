@@ -46,6 +46,26 @@ public class RoomNodeSO : ScriptableObject
 
             roomNodeType = roomNodeTypeList.list[selection];
 
+            if (roomNodeTypeList.list[selected].isCorridor && !roomNodeTypeList.list[selection].isCorridor || !roomNodeTypeList.list[selected].isCorridor && roomNodeTypeList.list[selection].isCorridor || !roomNodeTypeList.list[selected].isBossRoom && roomNodeTypeList.list[selection].isBossRoom)
+            {
+                if (childRoomNodeIdList.Count > 0)
+                {
+                    for (int i = childRoomNodeIdList.Count - 1; i >= 0; i--)
+                    {
+                        RoomNodeSO childRoomNode = roomNodeGraph.GetRoomNode(childRoomNodeIdList[i]);
+
+                        if (childRoomNode != null)
+                        {
+                            RemoveChildRoomNodeIDFromRoomNode(childRoomNode.id);
+
+                            childRoomNode.RemoveParentRoomNodeIDFromRoomNode(id);
+
+
+                        }
+                    }
+                }
+            }
+
         }
         if (EditorGUI.EndChangeCheck())
             EditorUtility.SetDirty(this);
@@ -140,7 +160,7 @@ public class RoomNodeSO : ScriptableObject
         DragNode(currentEvent.delta);
         GUI.changed = true;
     }
-    private void DragNode(Vector2 delta)
+    public void DragNode(Vector2 delta)
     {
         rect.position += delta;
         EditorUtility.SetDirty(this);
@@ -216,7 +236,7 @@ public class RoomNodeSO : ScriptableObject
         }
         return false;
     }
-    public bool RemoveChilParentNodeIDFromRoomNode(string parentID)
+    public bool RemoveParentRoomNodeIDFromRoomNode(string parentID)
     {
         if (parentRoomNodeIdList.Contains(parentID))
         {
